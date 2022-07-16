@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
 <style>
   body {
     font-size: 150%;
@@ -34,10 +34,15 @@
   tr:nth-child(even) {
     background-color: #dddddd;
   }
+
+  canvas {
+    max-width: 1000px;
+  }
 </style>
 
 <body>
   <?php
+  $date = $_GET['date'];
   $servername = "localhost";
   $username = "root";
   $password = "test#1234";
@@ -50,10 +55,10 @@
 
   <h1>Finance-Front</h1>
   <br>
-  <h2>Juni</h2>
+  <h2><?php echo $date; ?></h2>
   <h3>Einnahmen</h3>
   <div class="chartBox">
-    <canvas id="firstChart" style="width:100%;max-width:600px"></canvas>
+    <canvas id="firstChart" ></canvas>
     <table id="tableEinnahmen">
       <tr>
         <th>Kategorie</th>
@@ -65,7 +70,7 @@
   <h3>Ausgaben</h3>
   <h4>Alle</h4>
   <div class="chartBox">
-    <canvas id="secondChart" style="width:100%;max-width:600px"></canvas>
+    <canvas id="secondChart" ></canvas>
     <table id="tableAusgabenAlle">
       <tr>
         <th>Kategorie</th>
@@ -75,7 +80,7 @@
   </div>
   <h4>Fix</h4>
   <div class="chartBox">
-    <canvas id="thirdChart" style="width:100%;max-width:600px"></canvas>
+    <canvas id="thirdChart" ></canvas>
     <table id="tableAusgabenFix">
       <tr>
         <th>Kategorie</th>
@@ -85,7 +90,7 @@
   </div>
   <h4>Nicht Fix</h4>
   <div class="chartBox">
-    <canvas id="fourthChart" style="width:100%;max-width:600px"></canvas>
+    <canvas id="fourthChart" ></canvas>
     <table id="tableAusgabenNichtFix">
       <tr>
         <th>Kategorie</th>
@@ -110,7 +115,7 @@
     //Fülle Einnahmen
     $sql = "SELECT T1.category as cat, (SELECT ROUND(SUM(VALUE), 2) WHERE category = T1.category) AS summ FROM _finance_data T1 WHERE
     T1.category NOT LIKE 'Umbuchung' 
-    AND T1.DATE LIKE '2022-06%' 
+    AND T1.DATE LIKE '" . $date . "%' 
     AND T1.VALUE > 0.0 
     GROUP BY (T1.category)
     ORDER BY summ ASC
@@ -126,7 +131,7 @@
     //Fülle Ausgaben(alle)
     $sql = "SELECT T1.category as cat, (SELECT ROUND(SUM(VALUE), 2) WHERE category = T1.category) AS summ FROM _finance_data T1 WHERE
     T1.category NOT LIKE 'Umbuchung' 
-    AND T1.DATE LIKE '2022-06%' 
+    AND T1.DATE LIKE '" . $date . "%' 
     AND T1.VALUE < 0.0 
     GROUP BY (T1.category)
     ORDER BY summ ASC
@@ -142,7 +147,7 @@
     //Fülle Ausgaben(fix)
     $sql = "SELECT T1.category as cat, (SELECT ROUND(SUM(VALUE), 2) WHERE category = T1.category) AS summ FROM _finance_data T1 WHERE
     T1.category NOT LIKE 'Umbuchung' 
-    AND T1.DATE LIKE '2022-06%' 
+    AND T1.DATE LIKE '" . $date . "%' 
     AND T1.VALUE < 0.0 
     AND T1.cost_fixed = 1
     GROUP BY (T1.category)
@@ -159,7 +164,7 @@
     //Fülle Ausgaben(nicht fix)
     $sql = "SELECT T1.category as cat, (SELECT ROUND(SUM(VALUE), 2) WHERE category = T1.category) AS summ FROM _finance_data T1 WHERE
     T1.category NOT LIKE 'Umbuchung' 
-    AND T1.DATE LIKE '2022-06%' 
+    AND T1.DATE LIKE '" . $date . "%' 
     AND T1.VALUE < 0.0 
     AND T1.cost_fixed = 0
     GROUP BY (T1.category)
@@ -178,36 +183,36 @@
     //Einnahmen  
     for (i = 0, len = x_einnahmen_1.length, text = ""; i < len; i++) {
       let tmp = document.getElementById("tableEinnahmen").innerHTML;
-      document.getElementById("tableEinnahmen").innerHTML = tmp + "<tr><td>" + x_einnahmen_1[i] + "</td><td>" + y_einnahmen_1[i] + "</td></tr>";
+      document.getElementById("tableEinnahmen").innerHTML = tmp + "<tr><td>" + x_einnahmen_1[i] + "</td><td>" + formatEuro(y_einnahmen_1[i]) + "</td></tr>";
     }
     //Summe
     tmp = document.getElementById("tableEinnahmen").innerHTML;
-    document.getElementById("tableEinnahmen").innerHTML = tmp + "<tr><td>Gesamt</td><td>" + getSum(y_einnahmen_1) + "</td></tr>";
-    
+    document.getElementById("tableEinnahmen").innerHTML = tmp + "<tr><td>Gesamt</td><td>" + formatEuro(getSum(y_einnahmen_1)) + "</td></tr>";
+
 
     //Ausgaben(alle)
     for (i = 0, len = x_ausgaben_1.length, text = ""; i < len; i++) {
       let tmp = document.getElementById("tableAusgabenAlle").innerHTML;
-      document.getElementById("tableAusgabenAlle").innerHTML = tmp + "<tr><td>" + x_ausgaben_1[i] + "</td><td>" + y_ausgaben_1[i] + "</td></tr>";
+      document.getElementById("tableAusgabenAlle").innerHTML = tmp + "<tr><td>" + x_ausgaben_1[i] + "</td><td>" + formatEuro(y_ausgaben_1[i]) + "</td></tr>";
     }
     tmp = document.getElementById("tableAusgabenAlle").innerHTML;
-    document.getElementById("tableAusgabenAlle").innerHTML = tmp + "<tr><td>Gesamt</td><td>" + getSum(y_ausgaben_1) + "</td></tr>";
+    document.getElementById("tableAusgabenAlle").innerHTML = tmp + "<tr><td>Gesamt</td><td>" + formatEuro(getSum(y_ausgaben_1)) + "</td></tr>";
 
     //Ausgaben(fix)
     for (i = 0, len = x_ausgaben_fix_1.length, text = ""; i < len; i++) {
       let tmp = document.getElementById("tableAusgabenFix").innerHTML;
-      document.getElementById("tableAusgabenFix").innerHTML = tmp + "<tr><td>" + x_ausgaben_fix_1[i] + "</td><td>" + y_ausgaben_fix_1[i] + "</td></tr>";
+      document.getElementById("tableAusgabenFix").innerHTML = tmp + "<tr><td>" + x_ausgaben_fix_1[i] + "</td><td>" + formatEuro(y_ausgaben_fix_1[i]) + "</td></tr>";
     }
     tmp = document.getElementById("tableAusgabenFix").innerHTML;
-    document.getElementById("tableAusgabenFix").innerHTML = tmp + "<tr><td>Gesamt</td><td>" + getSum(y_ausgaben_fix_1) + "</td></tr>";
+    document.getElementById("tableAusgabenFix").innerHTML = tmp + "<tr><td>Gesamt</td><td>" + formatEuro(getSum(y_ausgaben_fix_1)) + "</td></tr>";
 
     //Ausgaben(nicht fix)
     for (i = 0, len = x_ausgaben_non_fix_1.length, text = ""; i < len; i++) {
       let tmp = document.getElementById("tableAusgabenNichtFix").innerHTML;
-      document.getElementById("tableAusgabenNichtFix").innerHTML = tmp + "<tr><td>" + x_ausgaben_non_fix_1[i] + "</td><td>" + y_ausgaben_non_fix_1[i] + "</td></tr>";
+      document.getElementById("tableAusgabenNichtFix").innerHTML = tmp + "<tr><td>" + x_ausgaben_non_fix_1[i] + "</td><td>" + formatEuro(y_ausgaben_non_fix_1[i]) + "</td></tr>";
     }
     tmp = document.getElementById("tableAusgabenNichtFix").innerHTML;
-    document.getElementById("tableAusgabenNichtFix").innerHTML = tmp + "<tr><td>Gesamt</td><td>" + getSum(y_ausgaben_non_fix_1) + "</td></tr>";
+    document.getElementById("tableAusgabenNichtFix").innerHTML = tmp + "<tr><td>Gesamt</td><td>" +formatEuro( getSum(y_ausgaben_non_fix_1)) + "</td></tr>";
 
 
 
@@ -254,7 +259,7 @@
       options: {
         title: {
           display: true,
-          text: "Einnahmen"
+          text: "Ausgaben"
         }
       }
     });
@@ -271,7 +276,7 @@
       options: {
         title: {
           display: true,
-          text: "Einnahmen"
+          text: "Ausgaben Fix"
         }
       }
     });
@@ -288,17 +293,21 @@
       options: {
         title: {
           display: true,
-          text: "Einnahmen"
+          text: "Ausgaben nicht Fix"
         }
       }
     });
 
     function getSum(array) {
-      var count = 0.0;v c
+      var count = 0.0;
       for (var i = array.length; i--;) {
         count += parseFloat(array[i]);
       }
       return count;
+    }
+
+    function formatEuro(num){
+      return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(num);
     }
   </script>
 
