@@ -35,14 +35,18 @@
     background-color: #dddddd;
   }
 
-  canvas {
+  .main_chart {
+  }
+
+  .chart {
     max-width: 1000px;
   }
 </style>
 
 <body>
   <?php
-  $date = $_GET['date'];
+  $from = $_GET['from'];
+  $to = $_GET['to'];
   $servername = "localhost";
   $username = "root";
   $password = "test#1234";
@@ -55,10 +59,15 @@
 
   <h1>Finance-Front</h1>
   <br>
-  <h2><?php echo $date; ?></h2>
+  <h2>Von <?php echo $from; ?> bis <?php echo $to; ?></h2>
+  <h3>Überblick</h3>
+  <div class="chartBox">
+    <canvas id="overviewChart" class="main_chart">></canvas>
+  </div>
+  <br>
   <h3>Einnahmen</h3>
   <div class="chartBox">
-    <canvas id="firstChart" ></canvas>
+    <canvas id="firstChart" class="chart"></canvas>
     <table id="tableEinnahmen">
       <tr>
         <th>Kategorie</th>
@@ -70,7 +79,7 @@
   <h3>Ausgaben</h3>
   <h4>Alle</h4>
   <div class="chartBox">
-    <canvas id="secondChart" ></canvas>
+    <canvas id="secondChart" class="chart"></canvas>
     <table id="tableAusgabenAlle">
       <tr>
         <th>Kategorie</th>
@@ -80,7 +89,7 @@
   </div>
   <h4>Fix</h4>
   <div class="chartBox">
-    <canvas id="thirdChart" ></canvas>
+    <canvas id="thirdChart" class="chart"></canvas>
     <table id="tableAusgabenFix">
       <tr>
         <th>Kategorie</th>
@@ -90,7 +99,7 @@
   </div>
   <h4>Nicht Fix</h4>
   <div class="chartBox">
-    <canvas id="fourthChart" ></canvas>
+    <canvas id="fourthChart" class="chart"></canvas>
     <table id="tableAusgabenNichtFix">
       <tr>
         <th>Kategorie</th>
@@ -100,6 +109,9 @@
   </div>
 
   <script>
+    //Überblick
+    var x_ueberblick_1 = [];
+    var y_ueberblick_1 = [];
     //Einnahmen
     var x_einnahmen_1 = [];
     var y_einnahmen_1 = [];
@@ -112,10 +124,30 @@
     var y_ausgaben_non_fix_1 = [];
 
     <?php
+    //Fülle Überblick
+    $sql = "SELECT LEFT(T1.date, 10) AS fixedDate, (SELECT ROUND(SUM(VALUE), 2) WHERE date = T1.date) AS summ FROM _finance_data T1 
+    WHERE T1.category NOT LIKE 'Umbuchung' 
+    AND T1.DATE >= '" . $from . "' 
+    AND T1.DATE <= '" . $to . "' 
+    GROUP BY (T1.date)
+    ORDER BY T1.date ASC
+    
+    ";
+    $result = $conn->query($sql);
+    if ($result->num_rows > 0) {
+      // output data of each row
+      while ($row = $result->fetch_assoc()) {
+        echo 'x_ueberblick_1.push("' . $row["fixedDate"] . '");';
+        echo 'y_ueberblick_1.push("' . $row["summ"] . '");';
+      }
+    }
+
+
     //Fülle Einnahmen
     $sql = "SELECT T1.category as cat, (SELECT ROUND(SUM(VALUE), 2) WHERE category = T1.category) AS summ FROM _finance_data T1 WHERE
     T1.category NOT LIKE 'Umbuchung' 
-    AND T1.DATE LIKE '" . $date . "%' 
+    AND T1.DATE >= '" . $from . "' 
+    AND T1.DATE <= '" . $to . "' 
     AND T1.VALUE > 0.0 
     GROUP BY (T1.category)
     ORDER BY summ ASC
@@ -131,7 +163,8 @@
     //Fülle Ausgaben(alle)
     $sql = "SELECT T1.category as cat, (SELECT ROUND(SUM(VALUE), 2) WHERE category = T1.category) AS summ FROM _finance_data T1 WHERE
     T1.category NOT LIKE 'Umbuchung' 
-    AND T1.DATE LIKE '" . $date . "%' 
+    AND T1.DATE >= '" . $from . "' 
+    AND T1.DATE <= '" . $to . "' 
     AND T1.VALUE < 0.0 
     GROUP BY (T1.category)
     ORDER BY summ ASC
@@ -147,7 +180,8 @@
     //Fülle Ausgaben(fix)
     $sql = "SELECT T1.category as cat, (SELECT ROUND(SUM(VALUE), 2) WHERE category = T1.category) AS summ FROM _finance_data T1 WHERE
     T1.category NOT LIKE 'Umbuchung' 
-    AND T1.DATE LIKE '" . $date . "%' 
+    AND T1.DATE >= '" . $from . "' 
+    AND T1.DATE <= '" . $to . "' 
     AND T1.VALUE < 0.0 
     AND T1.cost_fixed = 1
     GROUP BY (T1.category)
@@ -164,7 +198,8 @@
     //Fülle Ausgaben(nicht fix)
     $sql = "SELECT T1.category as cat, (SELECT ROUND(SUM(VALUE), 2) WHERE category = T1.category) AS summ FROM _finance_data T1 WHERE
     T1.category NOT LIKE 'Umbuchung' 
-    AND T1.DATE LIKE '" . $date . "%' 
+    AND T1.DATE >= '" . $from . "' 
+    AND T1.DATE <= '" . $to . "'  
     AND T1.VALUE < 0.0 
     AND T1.cost_fixed = 0
     GROUP BY (T1.category)
@@ -212,7 +247,7 @@
       document.getElementById("tableAusgabenNichtFix").innerHTML = tmp + "<tr><td>" + x_ausgaben_non_fix_1[i] + "</td><td>" + formatEuro(y_ausgaben_non_fix_1[i]) + "</td></tr>";
     }
     tmp = document.getElementById("tableAusgabenNichtFix").innerHTML;
-    document.getElementById("tableAusgabenNichtFix").innerHTML = tmp + "<tr><td>Gesamt</td><td>" +formatEuro( getSum(y_ausgaben_non_fix_1)) + "</td></tr>";
+    document.getElementById("tableAusgabenNichtFix").innerHTML = tmp + "<tr><td>Gesamt</td><td>" + formatEuro(getSum(y_ausgaben_non_fix_1)) + "</td></tr>";
 
 
 
@@ -229,6 +264,23 @@
       "#7FFF00",
       "#228B22"
     ];
+
+    new Chart("overviewChart", {
+      type: "bar",
+      data: {
+        labels: x_ueberblick_1,
+        datasets: [{
+          backgroundColor: barColors,
+          data: y_ueberblick_1
+        }]
+      },
+      options: {
+        title: {
+          display: true,
+          text: "Überblick"
+        }
+      }
+    });
 
     new Chart("firstChart", {
       type: "doughnut",
@@ -306,8 +358,11 @@
       return count;
     }
 
-    function formatEuro(num){
-      return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(num);
+    function formatEuro(num) {
+      return new Intl.NumberFormat('de-DE', {
+        style: 'currency',
+        currency: 'EUR'
+      }).format(num);
     }
   </script>
 
